@@ -3,25 +3,25 @@ import datetime
 
 app = Flask(__name__)
 
-# Simulated paper trading log
+# Paper trading log (keeps all alerts sent from TradingView)
 trades = []
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.json
-    side = data.get("side", "unknown")
+    data = request.json  # Get JSON payload from TradingView
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Simulated trade
+
+    # Build trade using real alert data
     trade = {
-        "time": timestamp,
-        "action": "BUY" if side == "long" else "SELL",
-        "size": 0.1,
-        "price": "Simulated"
+        "time": data.get("time", timestamp),     # Use TradingView time if available
+        "action": data.get("action", "unknown"), # BUY or SELL
+        "size": data.get("size", 0.1),           # Default size if not included
+        "price": data.get("price", "N/A")        # Real close price from alert
     }
+
     trades.append(trade)
-    
-    print(f"[{timestamp}] Executed {trade['action']} 0.1 BTC (Simulated)")
+
+    print(f"[{timestamp}] Executed {trade['action']} {trade['size']} @ {trade['price']}")
     return jsonify({"status": "ok", "trade": trade})
 
 @app.route('/trades', methods=['GET'])
