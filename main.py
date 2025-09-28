@@ -28,5 +28,13 @@ def webhook():
 def get_trades():
     return jsonify(trades)
 
+# === New reset endpoint ===
+@app.route('/reset', methods=['POST'])
+def reset_trades():
+    global trades
+    trades = []
+    print("[RESET] Trade log cleared")
+    return jsonify({"status": "reset done", "trades": trades})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
