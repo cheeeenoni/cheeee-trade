@@ -1,28 +1,45 @@
 from flask import Flask, request, jsonify
 import datetime
+import json
 
 app = Flask(__name__)
 
-# Paper trading log (keeps all alerts sent from TradingView)
+# Store trades in memory
 trades = []
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.json  # Get JSON payload from TradingView
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    trade = None
 
-    # Build trade using real alert data
-    trade = {
-        "time": data.get("time", timestamp),     # Use TradingView time if available
-        "action": data.get("action", "unknown"), # BUY or SELL
-        "size": data.get("size", 0.1),           # Default size if not included
-        "price": data.get("price", "N/A")        # Real close price from alert
-    }
+    try:
+        # Try to parse JSON body
+        data = request.get_json(force=True, silent=True)
+        if data:
+            trade = {
+                "time": data.get("time", timestamp),
+                "action": data.get("action", "unknown"),
+                "size": data.get("size", 0.1),
+                "price": data.get("price", "N/A")
+            }
+        else:
+            # Fallback: if TradingView sent plain text, log raw message
+            raw_message = request.data.decode("utf-8")
+            trade = {
+                "time": timestamp,
+                "action": "RAW",
+                "size": "N/A",
+                "price": "N/A",
+                "message": raw_message
+            }
 
-    trades.append(trade)
+        trades.append(trade)
+        print(f"[{timestamp}] Logged trade: {trade}")
+        return jsonify({"status": "ok", "trade": trade}), 200
 
-    print(f"[{timestamp}] Executed {trade['action']} {trade['size']} @ {trade['price']}")
-    return jsonify({"status": "ok", "trade": trade})
+    except Exception as e:
+        print(f"[{timestamp}] Error processing alert: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 @app.route('/trades', methods=['GET'])
 def get_trades():
@@ -30,9 +47,9 @@ def get_trades():
 
 @app.route('/reset', methods=['POST'])
 def reset_trades():
-    global trades
-    trades = []
-    return jsonify({"status": "reset done", "trades": trades})
+    trades.clear()
+    print("[RESET] Trades list cleared.")
+    return jsonify({"status": "ok", "message": "Trades cleared"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
