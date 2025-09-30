@@ -21,6 +21,8 @@ c.execute("""CREATE TABLE IF NOT EXISTS trades (
 )""")
 conn.commit()
 
+
+# === Webhook: receives TradingView alerts ===
 @app.route('/webhook', methods=['POST'])
 def webhook():
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -48,7 +50,6 @@ def webhook():
         # === TAKE PROFIT + STOP LOSS (separate orders for crypto) ===
         tp_order, sl_order = None, None
         if side == "buy":
-            # take profit = sell at higher price
             if tp > 0:
                 tp_order = api.submit_order(
                     symbol=symbol,
@@ -58,7 +59,6 @@ def webhook():
                     limit_price=str(tp),
                     time_in_force="gtc"
                 )
-            # stop loss = sell if price falls
             if stop > 0:
                 sl_order = api.submit_order(
                     symbol=symbol,
@@ -69,7 +69,6 @@ def webhook():
                     time_in_force="gtc"
                 )
         else:  # short
-            # take profit = buy back lower
             if tp > 0:
                 tp_order = api.submit_order(
                     symbol=symbol,
@@ -79,7 +78,6 @@ def webhook():
                     limit_price=str(tp),
                     time_in_force="gtc"
                 )
-            # stop loss = buy back higher
             if stop > 0:
                 sl_order = api.submit_order(
                     symbol=symbol,
@@ -106,12 +104,16 @@ def webhook():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
+
+# === Trades log ===
 @app.route('/trades', methods=['GET'])
 def get_trades():
     c.execute("SELECT * FROM trades")
     rows = c.fetchall()
     return jsonify(rows)
 
+
+# === Status check (health + positions) ===
 @app.route('/status', methods=['GET'])
 def status():
     try:
@@ -139,32 +141,7 @@ def status():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/status', methods=['GET'])
-def status():
-    try:
-        account = api.get_account()
-        positions = api.list_positions()
-
-        summary = {}
-        for pos in positions:
-            summary[pos.symbol] = {
-                "side": pos.side,
-                "qty": pos.qty,
-                "avg_entry_price": pos.avg_entry_price,
-                "market_price": pos.current_price,
-                "unrealized_pl": pos.unrealized_pl,
-                "unrealized_plpc": pos.unrealized_plpc
-            }
-
-        return jsonify({
-            "status": "alive",
-            "equity": account.equity,
-            "buying_power": account.buying_power,
-            "positions": summary
-        }), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
