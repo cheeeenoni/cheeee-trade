@@ -3,8 +3,8 @@ import datetime, sqlite3, os
 import alpaca_trade_api as tradeapi
 
 # === CONFIG: Alpaca Paper Trading ===
-API_KEY = os.getenv("APCA_API_KEY_ID", "your_api_key")
-API_SECRET = os.getenv("APCA_API_SECRET_KEY", "your_api_secret")
+API_KEY = os.getenv("APCA_API_KEY_ID", "PKQZQZE8L2H38RU3CC4P")
+API_SECRET = os.getenv("APCA_API_SECRET_KEY", "fe2WyZgPc60b4HcfWCU8DVIBlBVX4qjljuua0OEO")
 BASE_URL = "https://paper-api.alpaca.markets"
 
 api = tradeapi.REST(API_KEY, API_SECRET, BASE_URL)
