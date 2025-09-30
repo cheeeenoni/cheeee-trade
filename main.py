@@ -139,5 +139,32 @@ def status():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/status', methods=['GET'])
+def status():
+    try:
+        account = api.get_account()
+        positions = api.list_positions()
+
+        summary = {}
+        for pos in positions:
+            summary[pos.symbol] = {
+                "side": pos.side,
+                "qty": pos.qty,
+                "avg_entry_price": pos.avg_entry_price,
+                "market_price": pos.current_price,
+                "unrealized_pl": pos.unrealized_pl,
+                "unrealized_plpc": pos.unrealized_plpc
+            }
+
+        return jsonify({
+            "status": "alive",
+            "equity": account.equity,
+            "buying_power": account.buying_power,
+            "positions": summary
+        }), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
